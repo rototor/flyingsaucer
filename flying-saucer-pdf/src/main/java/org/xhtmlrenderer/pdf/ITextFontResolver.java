@@ -445,7 +445,12 @@ public class ITextFontResolver implements FontResolver {
 
             // Try and load the iTextAsian fonts
             if(ITextFontResolver.class.getClassLoader().getResource("com/lowagie/text/pdf/fonts/cjkfonts.properties") != null) {
-                addCJKFonts(result);
+	        try {
+                	addCJKFonts(result);
+		} catch(NullPointerException e) {
+			// May not work with iText 2.1.7 - but the propertyfile may exist
+			// because javamelody contains such a propertyfile
+		}
             }
         } catch (DocumentException e) {
             throw new RuntimeException(e.getMessage(), e);
