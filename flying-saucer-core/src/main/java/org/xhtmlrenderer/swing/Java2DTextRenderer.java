@@ -26,8 +26,10 @@ import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Toolkit;
 import java.awt.font.GlyphVector;
+import java.awt.font.TextAttribute;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.text.AttributedString;
 import java.util.Map;
 
 import org.xhtmlrenderer.extend.FSGlyphVector;
@@ -52,11 +54,12 @@ public class Java2DTextRenderer implements TextRenderer {
     protected float threshold;
     protected Object antiAliasRenderingHint;
     protected Object fractionalFontMetricsHint;
-
+    protected Font fallbackFont;
+    
     public Java2DTextRenderer() {
         scale = Configuration.valueAsFloat("xr.text.scale", 1.0f);
         threshold = Configuration.valueAsFloat("xr.text.aa-fontsize-threshhold", 25);
-
+        fallbackFont = Font.decode("Default");
         Object dummy = new Object();
 
         Object aaHint = Configuration.valueFromClassConstant("xr.text.aa-rendering-hint", dummy);        
@@ -88,17 +91,66 @@ public class Java2DTextRenderer implements TextRenderer {
         Object aaHint = null;
         Object fracHint = null;
         Graphics2D graphics = ((Java2DOutputDevice)outputDevice).getGraphics();
-        if ( graphics.getFont().getSize() > threshold ) {
+        final Font font = graphics.getFont();
+		if ( font.getSize() > threshold ) {
             aaHint = graphics.getRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING);
             graphics.setRenderingHint( RenderingHints.KEY_TEXT_ANTIALIASING, antiAliasRenderingHint );
         }
         fracHint = graphics.getRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS);
         graphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, fractionalFontMetricsHint);
-        graphics.drawString( string, (int)x, (int)y );
-        if ( graphics.getFont().getSize() > threshold ) {
+        
+        /*
+         * We have to check if we can render all characters with this font. If some characters can not be rendered, we
+         * should use a fallback to not render a rectangle char
+         */        
+        boolean canUseSimplePaint = true;
+        for( int i = 0; i < string.length(); i++ ) {
+        	char c = string.charAt(i);
+        	if(!font.canDisplay(c)) {
+        		canUseSimplePaint =  false;
+        		break;
+        	}
+        }
+		if (canUseSimplePaint)
+			// Just use a simple paint
+			graphics.drawString(string, (int) x, (int) y);
+		else {
+			/*
+			 * No, does not work. We create some ugly fallback using some default font....
+			 */
+			Font fallbackFontInSize = fallbackFont.deriveFont(font.getSize());
+			AttributedString fallbackString = createFallbackString(string, font,
+					fallbackFontInSize);
+			graphics.drawString(fallbackString.getIterator(), (int) x, (int) y);
+		}
+        
+        if ( font.getSize() > threshold ) {
             graphics.setRenderingHint( RenderingHints.KEY_TEXT_ANTIALIASING, aaHint );
         }
         graphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, fracHint);
+    }
+    
+    // http://stackoverflow.com/a/9482676
+    private static AttributedString createFallbackString(String text, Font mainFont, Font fallbackFont) {
+        AttributedString result = new AttributedString(text);
+
+        int textLength = text.length(); 
+        result.addAttribute(TextAttribute.FONT, mainFont, 0, textLength);
+
+        boolean fallback = false;
+        int fallbackBegin = 0;
+        for (int i = 0; i < text.length(); i++) {
+            boolean curFallback = !mainFont.canDisplay(text.charAt(i));
+            if (curFallback != fallback) {
+                fallback = curFallback;
+                if (fallback) {
+                    fallbackBegin = i;
+                } else {
+                    result.addAttribute(TextAttribute.FONT, fallbackFont, fallbackBegin, i);
+                }
+            }
+        }
+        return result;
     }
     
     public void drawString(
