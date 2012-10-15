@@ -150,6 +150,10 @@ public class Java2DTextRenderer implements TextRenderer {
                 }
             }
         }
+        if( fallback )  {
+        	// Also apply the fallback at the end of the string.
+            result.addAttribute(TextAttribute.FONT, fallbackFont, fallbackBegin, text.length());
+        }
         return result;
     }
     
