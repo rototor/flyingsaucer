@@ -65,7 +65,7 @@ public class SwingReplacedElementFactory implements ReplacedElementFactory {
     public SwingReplacedElementFactory() {
         this(ImageResourceLoader.NO_OP_REPAINT_LISTENER);
     }
-    
+
     public SwingReplacedElementFactory(RepaintListener repaintListener) {
         this(repaintListener, new ImageResourceLoader());
     }
@@ -117,7 +117,7 @@ public class SwingReplacedElementFactory implements ReplacedElementFactory {
 
             SwingReplacedElement result = new SwingReplacedElement(cc);
             result.setIntrinsicSize(formField.getIntrinsicSize());
-            
+
             if (context.isInteractive()) {
                 ((Container) context.getCanvas()).add(cc);
             }
@@ -138,17 +138,22 @@ public class SwingReplacedElementFactory implements ReplacedElementFactory {
      * @return
      */
     protected ReplacedElement replaceImage(UserAgentCallback uac, LayoutContext context, Element elem, int cssWidth, int cssHeight) {
-        ReplacedElement re;
-
-        // lookup in cache, or instantiate
+        ReplacedElement re = null;
         String imageSrc = context.getNamespaceHandler().getImageSourceURI(elem);
-        String ruri = uac.resolveURI(imageSrc);
-        re = lookupImageReplacedElement(elem, ruri, cssWidth, cssHeight);
-        if (re == null) {
-            if (imageSrc == null || imageSrc.length() == 0) {
-                XRLog.layout(Level.WARNING, "No source provided for img element.");
-                re = newIrreplaceableImageElement(cssWidth, cssHeight);
-            } else {
+        
+        if (imageSrc == null || imageSrc.length() == 0) {
+            XRLog.layout(Level.WARNING, "No source provided for img element.");
+            re = newIrreplaceableImageElement(cssWidth, cssHeight);
+        } else if (ImageUtil.isEmbeddedBase64Image(imageSrc)) {
+            BufferedImage image = ImageUtil.loadEmbeddedBase64Image(imageSrc);
+            if (image != null) {
+                re = new ImageReplacedElement(image, cssWidth, cssHeight);
+            }
+        } else {
+            // lookup in cache, or instantiate
+            String ruri = uac.resolveURI(imageSrc);
+            re = lookupImageReplacedElement(elem, ruri, cssWidth, cssHeight);
+            if (re == null) {
                 XRLog.load(Level.FINE, "Swing: Image " + ruri + " requested at "+ " to " + cssWidth + ", " + cssHeight);
                 ImageResource imageResource = imageResourceLoader.get(ruri, cssWidth, cssHeight);
                 if (imageResource.isLoaded()) {
@@ -156,8 +161,8 @@ public class SwingReplacedElementFactory implements ReplacedElementFactory {
                 } else {
                     re = new DeferredImageReplacedElement(imageResource, repaintListener, cssWidth, cssHeight);
                 }
+                storeImageReplacedElement(elem, re, ruri, cssWidth, cssHeight);
             }
-            storeImageReplacedElement(elem, re, ruri, cssWidth, cssHeight);
         }
         return re;
     }

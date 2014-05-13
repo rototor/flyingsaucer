@@ -1105,10 +1105,29 @@ public class PrimitivePropertyBuilders {
         }
     }
 
+    public static class FSDynamicAutoWidth extends SingleIdent {
+        private static final BitSet ALLOWED = setFor(
+                new IdentValue[] { IdentValue.DYNAMIC, IdentValue.STATIC });
+
+        protected BitSet getAllowed() {
+            return ALLOWED;
+        }
+    }
+
     public static class FSKeepWithInline extends SingleIdent {
         // auto | keep
         private static final BitSet ALLOWED = setFor(
                 new IdentValue[] { IdentValue.AUTO, IdentValue.KEEP });
+
+        protected BitSet getAllowed() {
+            return ALLOWED;
+        }
+    }
+
+    public static class FSNamedDestination extends SingleIdent {
+        // none | create
+        private static final BitSet ALLOWED = setFor(
+                new IdentValue[] { IdentValue.NONE, IdentValue.CREATE });
 
         protected BitSet getAllowed() {
             return ALLOWED;

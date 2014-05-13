@@ -243,6 +243,18 @@ public final class CSSName implements Comparable {
     /**
      * Unique CSSName instance for CSS2 property.
      */
+    public final static CSSName FS_DYNAMIC_AUTO_WIDTH =
+            addProperty(
+                    "-fs-dynamic-auto-width",
+                    PRIMITIVE,
+                    "static",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.FSDynamicAutoWidth()
+            );
+
+    /**
+     * Unique CSSName instance for CSS2 property.
+     */
     public final static CSSName FS_FONT_METRIC_SRC =
             addProperty(
                     "-fs-font-metric-src",
@@ -371,6 +383,18 @@ public final class CSSName implements Comparable {
                 NOT_INHERITED,
                 new PrimitivePropertyBuilders.FSFitImagesToWidth()
         );
+
+    /**
+     * Used to control creation of named destinations for boxes having the id attribute set.
+     */
+    public final static CSSName FS_NAMED_DESTINATION =
+            addProperty(
+                    "-fs-named-destination",
+                    PRIMITIVE,
+                    "none",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.FSNamedDestination()
+            );
 
     /**
      * Unique CSSName instance for CSS2 property.
