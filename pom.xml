@@ -11,7 +11,7 @@
 
   <groupId>org.xhtmlrenderer</groupId>
   <artifactId>flying-saucer-parent</artifactId>
-  <version>9.0.7-SNAPSHOT</version>
+  <version>9.0.7-rototor-13052014</version>
 
   <packaging>pom</packaging>
 
@@ -97,5 +97,16 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
+
+	<distributionManagement>
+		<repository>
+			<id>repo-deploy</id>
+			<url>http://ems:emsems@10.50.3.5:8081/artifactory/libs-release-local</url>
+		</repository>
+		<snapshotRepository>
+			<id>repo-deploy-snapshot</id>
+			<url>http://ems:emsems@10.50.3.5:8081/artifactory/libs-snapshot-local</url>
+		</snapshotRepository>
+	</distributionManagement>
 
 </project>
