@@ -54,12 +54,29 @@ public class Java2DTextRenderer implements TextRenderer {
     protected float threshold;
     protected Object antiAliasRenderingHint;
     protected Object fractionalFontMetricsHint;
-    protected Font fallbackFont;
+    protected ITextRendererFontFallbackStrategy fallbackStrategy;
+
+    public interface ITextRendererFontFallbackStrategy {
+    	public Font decideFallBackFor(char character, float fontSize);
+    }
+
+    public static class DefaultTextRendererFontFallbackStrategy implements ITextRendererFontFallbackStrategy {
+    	protected Font fallbackFont = Font.decode("Default");
+
+    	public Font decideFallBackFor(char character, float fontSize) {
+    		return fallbackFont.deriveFont(fontSize);
+    	}
+    }
+
     
     public Java2DTextRenderer() {
         scale = Configuration.valueAsFloat("xr.text.scale", 1.0f);
         threshold = Configuration.valueAsFloat("xr.text.aa-fontsize-threshhold", 25);
-        fallbackFont = Font.decode("Default");
+        try {
+			fallbackStrategy = (ITextRendererFontFallbackStrategy) Class.forName(Configuration.valueFor("xr.text.font-fallback-strategy", "org.xhtmlrenderer.swing.Java2DTextRenderer$DefaultTextRendererFontFallbackStrategy")).newInstance();
+		} catch (Exception e1) {
+			throw new RuntimeException("Error loading font fallback strategy: " + e1.getMessage(), e1);
+		}
         Object dummy = new Object();
 
         Object aaHint = Configuration.valueFromClassConstant("xr.text.aa-rendering-hint", dummy);        
@@ -118,9 +135,8 @@ public class Java2DTextRenderer implements TextRenderer {
 			/*
 			 * No, does not work. We create some ugly fallback using some default font....
 			 */
-			Font fallbackFontInSize = fallbackFont.deriveFont(font.getSize());
 			AttributedString fallbackString = createFallbackString(string, font,
-					fallbackFontInSize);
+					fallbackStrategy, font.getSize2D());
 			graphics.drawString(fallbackString.getIterator(), (int) x, (int) y);
 		}
         
@@ -131,26 +147,30 @@ public class Java2DTextRenderer implements TextRenderer {
     }
     
     // http://stackoverflow.com/a/9482676
-    private static AttributedString createFallbackString(String text, Font mainFont, Font fallbackFont) {
+    private static AttributedString createFallbackString(String text, Font mainFont,ITextRendererFontFallbackStrategy fontFallbackStrategy, float fontSize) {
         AttributedString result = new AttributedString(text);
 
         int textLength = text.length(); 
         result.addAttribute(TextAttribute.FONT, mainFont, 0, textLength);
 
-        boolean fallback = false;
+        Font fallbackFont = null;
         int fallbackBegin = 0;
         for (int i = 0; i < text.length(); i++) {
-            boolean curFallback = !mainFont.canDisplay(text.charAt(i));
-            if (curFallback != fallback) {
-                fallback = curFallback;
-                if (fallback) {
-                    fallbackBegin = i;
-                } else {
+            char charAt = text.charAt(i);
+			boolean needsFallback = !mainFont.canDisplay(charAt);
+            Font curFallback = null;
+            if( needsFallback ) 
+            	curFallback = fontFallbackStrategy.decideFallBackFor(charAt, fontSize);
+
+            if (curFallback != fallbackFont) {
+            	if( fallbackFont != null)
                     result.addAttribute(TextAttribute.FONT, fallbackFont, fallbackBegin, i);
-                }
+                fallbackFont = curFallback;
+                if (fallbackFont != null) 
+                    fallbackBegin = i;
             }
         }
-        if( fallback )  {
+        if( fallbackFont != null)  {
         	// Also apply the fallback at the end of the string.
             result.addAttribute(TextAttribute.FONT, fallbackFont, fallbackBegin, text.length());
         }
