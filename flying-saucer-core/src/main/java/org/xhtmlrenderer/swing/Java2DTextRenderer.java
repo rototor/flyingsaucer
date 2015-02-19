@@ -27,6 +27,7 @@ import java.awt.RenderingHints;
 import java.awt.Toolkit;
 import java.awt.font.GlyphVector;
 import java.awt.font.TextAttribute;
+import java.awt.font.TextLayout;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.text.AttributedString;
@@ -120,14 +121,7 @@ public class Java2DTextRenderer implements TextRenderer {
          * We have to check if we can render all characters with this font. If some characters can not be rendered, we
          * should use a fallback to not render a rectangle char
          */        
-        boolean canUseSimplePaint = true;
-        for( int i = 0; i < string.length(); i++ ) {
-        	char c = string.charAt(i);
-        	if(!font.canDisplay(c)) {
-        		canUseSimplePaint =  false;
-        		break;
-        	}
-        }
+        boolean canUseSimplePaint = determineCanUseSimplePaint(string, font);
 		if (canUseSimplePaint)
 			// Just use a simple paint
 			graphics.drawString(string, (int) x, (int) y);
@@ -145,6 +139,18 @@ public class Java2DTextRenderer implements TextRenderer {
         }
         graphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, fracHint);
     }
+
+	private boolean determineCanUseSimplePaint(String string, final Font font) {
+		boolean canUseSimplePaint = true;
+        for( int i = 0; i < string.length(); i++ ) {
+        	char c = string.charAt(i);
+        	if(!font.canDisplay(c)) {
+        		canUseSimplePaint =  false;
+        		break;
+        	}
+        }
+		return canUseSimplePaint;
+	}
     
     // http://stackoverflow.com/a/9482676
     private static AttributedString createFallbackString(String text, Font mainFont,ITextRendererFontFallbackStrategy fontFallbackStrategy, float fontSize) {
@@ -262,24 +268,39 @@ public class Java2DTextRenderer implements TextRenderer {
         Graphics2D graphics = ((Java2DFontContext)fc).getGraphics();
         fracHint = graphics.getRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS);
         graphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, fractionalFontMetricsHint);
+        
+        Font awtFont = ((AWTFSFont)font).getAWTFont();
         LineMetricsAdapter adapter = new LineMetricsAdapter(
-                ((AWTFSFont)font).getAWTFont().getLineMetrics(
-                        string, graphics.getFontRenderContext()));
+                    awtFont.getLineMetrics(
+                            string, graphics.getFontRenderContext()));
+        	
         graphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, fracHint);
         return adapter;
     }
     
     public int getWidth(FontContext fc, FSFont font, String string) {
+        boolean canUseSimplePaint = determineCanUseSimplePaint(string, ((AWTFSFont)font).getAWTFont());
         Object fracHint = null;
         Graphics2D graphics = ((Java2DFontContext)fc).getGraphics();
         fracHint = graphics.getRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS);
         graphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, fractionalFontMetricsHint);
         Font awtFont = ((AWTFSFont)font).getAWTFont();
         int width = 0;
-		FontMetrics fontMetrics = graphics.getFontMetrics(awtFont);
-		Rectangle2D stringBounds = fontMetrics.getStringBounds(string, graphics);
-		GlyphVector vector = awtFont.createGlyphVector(graphics.getFontRenderContext(), string);
-		Rectangle2D visualBounds = vector.getVisualBounds();
+
+		Rectangle2D stringBounds, visualBounds;
+        FontMetrics fontMetrics = graphics.getFontMetrics(awtFont);
+        stringBounds = fontMetrics.getStringBounds(string, graphics);
+        if( canUseSimplePaint ) {
+            GlyphVector vector = awtFont.createGlyphVector(graphics.getFontRenderContext(), string);
+            visualBounds = vector.getVisualBounds();
+        }
+        else {
+			AttributedString fallbackString = createFallbackString(string, awtFont,
+					fallbackStrategy, awtFont.getSize2D());
+			TextLayout layout = new TextLayout(fallbackString.getIterator(), graphics.getFontRenderContext());
+			visualBounds = layout.getBounds();
+        }
+		
 		double minX = Math.min(visualBounds.getMinX(), stringBounds.getMinX());
 		double maxX = Math.max(visualBounds.getMaxX(), stringBounds.getMaxX());
 		double fullWidth = maxX - minX;				
