@@ -58,13 +58,13 @@ public class Java2DTextRenderer implements TextRenderer {
     protected ITextRendererFontFallbackStrategy fallbackStrategy;
 
     public interface ITextRendererFontFallbackStrategy {
-    	public Font decideFallBackFor(char character, float fontSize);
+    	public Font decideFallBackFor(int codePoint, float fontSize);
     }
 
     public static class DefaultTextRendererFontFallbackStrategy implements ITextRendererFontFallbackStrategy {
     	protected Font fallbackFont = Font.decode("Default");
 
-    	public Font decideFallBackFor(char character, float fontSize) {
+    	public Font decideFallBackFor(int codePoint, float fontSize) {
     		return fallbackFont.deriveFont(fontSize);
     	}
     }
@@ -141,15 +141,13 @@ public class Java2DTextRenderer implements TextRenderer {
     }
 
 	private boolean determineCanUseSimplePaint(String string, final Font font) {
-		boolean canUseSimplePaint = true;
-        for( int i = 0; i < string.length(); i++ ) {
-        	char c = string.charAt(i);
-        	if(!font.canDisplay(c)) {
-        		canUseSimplePaint =  false;
-        		break;
-        	}
+        for( int i = 0; i < string.length();  ) {
+        	int codePoint = string.codePointAt(i);
+        	if(!font.canDisplay(codePoint)) 
+        		return false;
+        	i += Character.charCount(codePoint);
         }
-		return canUseSimplePaint;
+		return true;
 	}
     
     // http://stackoverflow.com/a/9482676
@@ -161,12 +159,12 @@ public class Java2DTextRenderer implements TextRenderer {
 
         Font fallbackFont = null;
         int fallbackBegin = 0;
-        for (int i = 0; i < text.length(); i++) {
-            char charAt = text.charAt(i);
-			boolean needsFallback = !mainFont.canDisplay(charAt);
+        for (int i = 0; i < text.length(); ) {
+            int codePoint = text.codePointAt(i);
+			boolean needsFallback = !mainFont.canDisplay(codePoint);
             Font curFallback = null;
             if( needsFallback ) 
-            	curFallback = fontFallbackStrategy.decideFallBackFor(charAt, fontSize);
+            	curFallback = fontFallbackStrategy.decideFallBackFor(codePoint, fontSize);
 
             if (curFallback != fallbackFont) {
             	if( fallbackFont != null)
@@ -175,6 +173,8 @@ public class Java2DTextRenderer implements TextRenderer {
                 if (fallbackFont != null) 
                     fallbackBegin = i;
             }
+            
+            i += Character.charCount(codePoint);
         }
         if( fallbackFont != null)  {
         	// Also apply the fallback at the end of the string.
