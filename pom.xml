@@ -24,11 +24,13 @@
   <modules>
     <module>flying-saucer-core</module>
     <module>flying-saucer-pdf</module>
+   <!--
     <module>flying-saucer-pdf-itext5</module>
     <module>flying-saucer-log4j</module>
     <module>flying-saucer-swt</module>
     <module>flying-saucer-swt-examples</module>
     <module>flying-saucer-examples</module>
+  -->
   </modules>
 
   <scm>
@@ -40,9 +42,13 @@
 
   <distributionManagement>
     <repository>
-      <id>bintray</id>
-      <url>https://api.bintray.com/maven/flyingsaucerproject/maven/org.xhtmlrenderer:flying-saucer-parent</url>
+      <id>repo-deploy</id>
+      <url>http://ems:emsems@10.50.3.5:8081/artifactory/ext-release-local</url>
     </repository>
+    <snapshotRepository>
+      <id>repo-deploy-snapshot</id>
+      <url>http://ems:emsems@10.50.3.5:8081/artifactory/ext-snapshot-local</url>
+    </snapshotRepository>
   </distributionManagement>
 
   <developers>
