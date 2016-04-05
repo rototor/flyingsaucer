@@ -370,8 +370,8 @@ public class ITextOutputDevice extends AbstractOutputDevice implements OutputDev
         return result;
     }
 
-    public void drawBorderLine(Rectangle bounds, int side, int lineWidth, boolean solid) {
-        float x = bounds.x;
+    public void drawBorderLine(Shape bounds, int side, int lineWidth, boolean solid) {
+       /*( float x = bounds.x;
         float y = bounds.y;
         float w = bounds.width;
         float h = bounds.height;
@@ -399,9 +399,9 @@ public class ITextOutputDevice extends AbstractOutputDevice implements OutputDev
                 offset += 1;
             }
             line = new Line2D.Float(x + adj, y + h - offset + adj2, x + w - adj, y + h - offset + adj2);
-        }
+        }*/
 
-        draw(line);
+        draw(bounds);
     }
 
     public void setColor(FSColor color) {
@@ -416,7 +416,7 @@ public class ITextOutputDevice extends AbstractOutputDevice implements OutputDev
         }
     }
 
-    private void draw(Shape s) {
+    public void draw(Shape s) {
         followPath(s, STROKE);
     }
 
@@ -505,11 +505,13 @@ public class ITextOutputDevice extends AbstractOutputDevice implements OutputDev
         if (fontSpec != null) {
             int need = ITextFontResolver.convertWeightToInt(fontSpec.fontWeight);
             int have = desc.getWeight();
+
             if (need > have) {
                 cb.setTextRenderingMode(PdfContentByte.TEXT_RENDER_MODE_FILL_STROKE);
                 float lineWidth = fontSize * 0.04f; // 4% of font size
                 cb.setLineWidth(lineWidth);
                 resetMode = true;
+                ensureStrokeColor();
             }
             if ((fontSpec.fontStyle == IdentValue.ITALIC) && (desc.getStyle() != IdentValue.ITALIC)) {
                 b = 0f;
@@ -647,6 +649,7 @@ public class ITextOutputDevice extends AbstractOutputDevice implements OutputDev
                 break;
 
             case PathIterator.SEG_QUADTO:
+            	System.out.println("Quad to " + coords[0] + " " + coords[1] + " " + coords[2] + " " + coords[3]);
                 cb.curveTo(coords[0], coords[1], coords[2], coords[3]);
                 break;
             }
@@ -852,15 +855,13 @@ public class ITextOutputDevice extends AbstractOutputDevice implements OutputDev
     }
 
     private void drawPDFAsImage(PDFAsImage image, int x, int y) {
-        URL url = image.getURL();
+        URI uri = image.getURI();
         PdfReader reader = null;
 
         try {
-            reader = getReader(url);
+            reader = getReader(uri);
         } catch (IOException e) {
-            throw new XRRuntimeException("Could not load " + url + ": " + e.getMessage(), e);
-        } catch (URISyntaxException e) {
-            throw new XRRuntimeException("Could not load " + url + ": " + e.getMessage(), e);
+            throw new XRRuntimeException("Could not load " + uri + ": " + e.getMessage(), e);
         }
 
         PdfImportedPage page = getWriter().getImportedPage(reader, 1);
@@ -885,11 +886,10 @@ public class ITextOutputDevice extends AbstractOutputDevice implements OutputDev
         _currentPage.saveState();
     }
 
-    public PdfReader getReader(URL url) throws IOException, URISyntaxException {
-        URI uri = url.toURI();
+    public PdfReader getReader(URI uri) throws IOException {
         PdfReader result = (PdfReader) _readerCache.get(uri);
         if (result == null) {
-            result = new PdfReader(url);
+            result = new PdfReader(getSharedContext().getUserAgentCallback().getBinaryResource(uri.toString()));
             _readerCache.put(uri, result);
         }
         return result;

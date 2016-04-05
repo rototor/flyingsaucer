@@ -18,12 +18,15 @@
  */
 package org.xhtmlrenderer.render;
 
+import java.text.BreakIterator;
+
 import org.w3c.dom.Element;
 import org.w3c.dom.Text;
 import org.xhtmlrenderer.css.constants.IdentValue;
 import org.xhtmlrenderer.css.extend.ContentFunction;
 import org.xhtmlrenderer.css.parser.FSFunction;
 import org.xhtmlrenderer.css.style.CalculatedStyle;
+import org.xhtmlrenderer.layout.Breaker;
 import org.xhtmlrenderer.layout.LayoutContext;
 import org.xhtmlrenderer.layout.Styleable;
 import org.xhtmlrenderer.layout.TextUtil;
@@ -225,8 +228,10 @@ public class InlineBox implements Styleable {
         int lastWord = 0;
 
         String text = getText(trimLeadingSpace);
+        BreakIterator breakIterator = Breaker.getWordStream(text);
 
-        while ( (current = text.indexOf(WhitespaceStripper.SPACE, last)) != -1) {
+        // Breaker should be used
+        while ( (current = breakIterator.next()) != BreakIterator.DONE) {
             String currentWord = text.substring(last, current);
             int wordWidth = getTextWidth(c, currentWord);
             int minWordWidth;
@@ -242,6 +247,8 @@ public class InlineBox implements Styleable {
                         wordWidth += spaceWidth;
                         minWordWidth += spaceWidth;
                     }
+                } else {
+                    maxWidth += spaceWidth;
                 }
                 spaceCount = 0;
             }
@@ -256,9 +263,6 @@ public class InlineBox implements Styleable {
                 _minWidth = minWordWidth;
             }
             maxWidth += wordWidth;
-            if (! includeWS) {
-                maxWidth += spaceWidth;
-            }
 
             last = current;
             for (int i = current; i < text.length(); i++) {
@@ -285,6 +289,8 @@ public class InlineBox implements Styleable {
                     wordWidth += spaceWidth;
                     minWordWidth += spaceWidth;
                 }
+            } else {
+                maxWidth += spaceWidth;
             }
             spaceCount = 0;
         }
