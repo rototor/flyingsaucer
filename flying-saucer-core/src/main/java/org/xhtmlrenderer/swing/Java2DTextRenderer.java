@@ -19,20 +19,6 @@
  */
 package org.xhtmlrenderer.swing;
 
-import java.awt.Font;
-import java.awt.FontMetrics;
-import java.awt.Graphics2D;
-import java.awt.Rectangle;
-import java.awt.RenderingHints;
-import java.awt.Toolkit;
-import java.awt.font.GlyphVector;
-import java.awt.font.TextAttribute;
-import java.awt.font.TextLayout;
-import java.awt.geom.Point2D;
-import java.awt.geom.Rectangle2D;
-import java.text.AttributedString;
-import java.util.Map;
-
 import org.xhtmlrenderer.extend.FSGlyphVector;
 import org.xhtmlrenderer.extend.FontContext;
 import org.xhtmlrenderer.extend.OutputDevice;
@@ -42,6 +28,15 @@ import org.xhtmlrenderer.render.FSFontMetrics;
 import org.xhtmlrenderer.render.JustificationInfo;
 import org.xhtmlrenderer.render.LineMetricsAdapter;
 import org.xhtmlrenderer.util.Configuration;
+
+import java.awt.*;
+import java.awt.font.GlyphVector;
+import java.awt.font.TextAttribute;
+import java.awt.font.TextLayout;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.text.AttributedString;
+import java.util.Map;
 
 
 /**
@@ -141,6 +136,12 @@ public class Java2DTextRenderer implements TextRenderer {
     }
 
 	private boolean determineCanUseSimplePaint(String string, final Font font) {
+        /*
+         * For now we *always* render the string using the AttributedString, because
+         * otherweise the ligatures in high quality fonts are not drawn correctly.
+         */
+        if( string.length() > 0 )
+            return false;
         for( int i = 0; i < string.length();  ) {
         	int codePoint = string.codePointAt(i);
         	if(!font.canDisplay(codePoint)) 
