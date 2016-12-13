@@ -195,9 +195,12 @@ public class Java2DTextRenderer implements TextRenderer {
         }
         fracHint = graphics.getRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS);
         graphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, fractionalFontMetricsHint);
+
+	AttributedString fallbackString = createFallbackString(string, graphics.getFont(),
+		fallbackStrategy, graphics.getFont().getSize2D());
         
         GlyphVector vector = graphics.getFont().createGlyphVector(
-                graphics.getFontRenderContext(), string);
+                graphics.getFontRenderContext(), fallbackString.getIterator());
         
         adjustGlyphPositions(string, info, vector);
         
