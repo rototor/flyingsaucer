@@ -53,26 +53,30 @@ public class Java2DTextRenderer implements TextRenderer {
     protected ITextRendererFontFallbackStrategy fallbackStrategy;
 
     public interface ITextRendererFontFallbackStrategy {
-    	public Font decideFallBackFor(int codePoint, float fontSize);
-    }
+		public Font decideFallBackFor(int codePoint, float fontSize);
+	}
 
+	/** @noinspection unused*/
     public static class DefaultTextRendererFontFallbackStrategy implements ITextRendererFontFallbackStrategy {
-    	protected Font fallbackFont = Font.decode("Default");
+		protected Font fallbackFont = Font.decode("Default");
 
-    	public Font decideFallBackFor(int codePoint, float fontSize) {
-    		return fallbackFont.deriveFont(fontSize);
+		public Font decideFallBackFor(int codePoint, float fontSize) {
+																		   return fallbackFont.deriveFont(fontSize);
     	}
     }
 
-    
+    public static ITextRendererFontFallbackStrategy loadFontFallbackStrategy(){
+        try {
+            return  (ITextRendererFontFallbackStrategy) Class.forName(Configuration.valueFor("xr.text.font-fallback-strategy", "org.xhtmlrenderer.swing.Java2DTextRenderer$DefaultTextRendererFontFallbackStrategy")).newInstance();
+        } catch (Exception e1) {
+            throw new RuntimeException("Error loading font fallback strategy: " + e1.getMessage(), e1);
+        }
+    }
+
     public Java2DTextRenderer() {
         scale = Configuration.valueAsFloat("xr.text.scale", 1.0f);
         threshold = Configuration.valueAsFloat("xr.text.aa-fontsize-threshhold", 25);
-        try {
-			fallbackStrategy = (ITextRendererFontFallbackStrategy) Class.forName(Configuration.valueFor("xr.text.font-fallback-strategy", "org.xhtmlrenderer.swing.Java2DTextRenderer$DefaultTextRendererFontFallbackStrategy")).newInstance();
-		} catch (Exception e1) {
-			throw new RuntimeException("Error loading font fallback strategy: " + e1.getMessage(), e1);
-		}
+		fallbackStrategy = loadFontFallbackStrategy();
         Object dummy = new Object();
 
         Object aaHint = Configuration.valueFromClassConstant("xr.text.aa-rendering-hint", dummy);        
@@ -102,7 +106,7 @@ public class Java2DTextRenderer implements TextRenderer {
     /** {@inheritDoc} */
     public void drawString(OutputDevice outputDevice, String string, float x, float y ) {
         Object aaHint = null;
-        Object fracHint = null;
+        Object fracHint;
         Graphics2D graphics = ((Java2DOutputDevice)outputDevice).getGraphics();
         final Font font = graphics.getFont();
 		if ( font.getSize() > threshold ) {
@@ -152,7 +156,7 @@ public class Java2DTextRenderer implements TextRenderer {
 	}
     
     // http://stackoverflow.com/a/9482676
-    private static AttributedString createFallbackString(String text, Font mainFont,ITextRendererFontFallbackStrategy fontFallbackStrategy, float fontSize) {
+    public static AttributedString createFallbackString(String text, Font mainFont,ITextRendererFontFallbackStrategy fontFallbackStrategy, float fontSize) {
         AttributedString result = new AttributedString(text);
 
         int textLength = text.length(); 
