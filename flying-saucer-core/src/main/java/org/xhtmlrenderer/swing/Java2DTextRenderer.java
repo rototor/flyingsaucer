@@ -439,10 +439,12 @@ public class Java2DTextRenderer implements TextRenderer {
         }
         fracHint = graphics.getRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS);
         graphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, fractionalFontMetricsHint);
-        
+
+        AttributedString fallbackString = createFallbackString(text, graphics.getFont(),
+                fallbackStrategy, graphics.getFont().getSize2D());
         GlyphVector vector = awtFont.createGlyphVector(
                 graphics.getFontRenderContext(),
-                text);
+                fallbackString.getIterator());
         
         if (awtFont.getSize() > threshold ) {
             graphics.setRenderingHint( RenderingHints.KEY_TEXT_ANTIALIASING, aaHint );
