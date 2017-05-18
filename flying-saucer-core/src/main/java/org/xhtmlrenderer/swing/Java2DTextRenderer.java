@@ -161,12 +161,26 @@ public class Java2DTextRenderer implements TextRenderer {
 
         int textLength = text.length(); 
         result.addAttribute(TextAttribute.FONT, mainFont, 0, textLength);
+        
+		/*
+		 * On Linux DejaVu needs special handling, because its a system font.
+		 * Sometimes the symbols provided by the system font are messed up. This
+		 * strange behavoir is not reproducable and only happens after the java
+		 * process is running for days / weeks.
+		 */
+		boolean isDejaVu = mainFont.getName().equals("DejaVu Sans");
+		int[] dejaVuBlacklistCodePoints = { 8222, 8220 };
 
         Font fallbackFont = null;
         int fallbackBegin = 0;
         for (int i = 0; i < text.length(); ) {
             int codePoint = text.codePointAt(i);
 			boolean needsFallback = !mainFont.canDisplay(codePoint);
+			if (isDejaVu) {
+				for (int cp : dejaVuBlacklistCodePoints)
+					if (codePoint == cp)
+						needsFallback = true;
+			}
             Font curFallback = null;
             if( needsFallback ) 
             	curFallback = fontFallbackStrategy.decideFallBackFor(codePoint, fontSize);
